@@ -10,7 +10,7 @@ trigger:
     - push
 
 steps:
-  - name: build-ax6000-slave
+  - name: build-slave
     image: hentioe/openwrt-build-base:23.05-ubuntu
     pull: always
     commands:
@@ -26,21 +26,21 @@ steps:
       # 构建固件
       - (cd build/openwrt && make -j$(nproc) || { make -j1 V=s ; exit 1 ; })
 
-  - name: copy-r5s-firmware
+  - name: copy-firmware
     image: hentioe/openwrt-build-base:23.05-ubuntu
     volumes:
       - name: dist
         path: /dist
     commands:
       # 定义固件文件名变量
-      - export EXT4_SYSUPGRADE_IMG_GZ=openwrt-rockchip-armv8-friendlyarm_nanopi-r5s-ext4-sysupgrade.img.gz
-      - export SQUASHFS_SYSUPGRADE_IMG_GZ=openwrt-rockchip-armv8-friendlyarm_nanopi-r5s-squashfs-sysupgrade.img.gz
+      - export TARGET_ROOT=build/openwrt/bin/targets/mediatek/filogic
+      - export FACTORY_UBI=openwrt-mediatek-filogic-xiaomi_redmi-router-ax6000-stock-initramfs-factory.ubi
+      - export SQUASHFS_SYSUPGRADE_BIN=openwrt-mediatek-filogic-xiaomi_redmi-router-ax6000-stock-squashfs-sysupgrade.bin
       # 将固件复制到外部
-      - cp build/openwrt/bin/targets/rockchip/armv8/$${EXT4_SYSUPGRADE_IMG_GZ} /dist/
-      - cp build/openwrt/bin/targets/rockchip/armv8/$${SQUASHFS_SYSUPGRADE_IMG_GZ} /dist/
-      # 输出 sha256sum
-      - (cd /dist && sha256sum $${EXT4_SYSUPGRADE_IMG_GZ})
-      - (cd /dist && sha256sum $${SQUASHFS_SYSUPGRADE_IMG_GZ})
+      - cp $${TARGET_ROOT}/$${FACTORY_UBI} /dist/
+      - cp $${TARGET_ROOT}/$${SQUASHFS_SYSUPGRADE_BIN} /dist/
+      # 打印 sha256sums
+      - cat $${TARGET_ROOT}/sha256sums
 
 volumes:
   - name: dist
