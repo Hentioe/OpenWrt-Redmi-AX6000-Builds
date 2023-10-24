@@ -1,0 +1,48 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+trigger:
+  branch:
+    - main
+  event:
+    - push
+
+steps:
+  - name: build-ax6000-slave
+    image: hentioe/openwrt-build-base:23.05-ubuntu
+    pull: always
+    commands:
+      # 修正仓库文件权限
+      - sudo chown -R 1000:1000 .
+      # 设置并输出环境信息
+      - export OPENWRT_BRANCH=main
+      - "echo Build user: `whoami`"
+      - "echo Build branch: $${OPENWRT_BRANCH}"
+      - bash ./openwrt-$${OPENWRT_BRANCH}/steps/01_clone_openwrt.sh
+      - bash ./openwrt-$${OPENWRT_BRANCH}/steps/02-prepare_package.sh
+      - bash ./openwrt-$${OPENWRT_BRANCH}/steps/03-apply_config.sh slave
+      # 构建固件
+      - (cd build/openwrt && make -j$(nproc) || { make -j1 V=s ; exit 1 ; })
+
+  - name: copy-r5s-firmware
+    image: hentioe/openwrt-build-base:23.05-ubuntu
+    volumes:
+      - name: dist
+        path: /dist
+    commands:
+      # 定义固件文件名变量
+      - export EXT4_SYSUPGRADE_IMG_GZ=openwrt-rockchip-armv8-friendlyarm_nanopi-r5s-ext4-sysupgrade.img.gz
+      - export SQUASHFS_SYSUPGRADE_IMG_GZ=openwrt-rockchip-armv8-friendlyarm_nanopi-r5s-squashfs-sysupgrade.img.gz
+      # 将固件复制到外部
+      - cp build/openwrt/bin/targets/rockchip/armv8/$${EXT4_SYSUPGRADE_IMG_GZ} /dist/
+      - cp build/openwrt/bin/targets/rockchip/armv8/$${SQUASHFS_SYSUPGRADE_IMG_GZ} /dist/
+      # 输出 sha256sum
+      - (cd /dist && sha256sum $${EXT4_SYSUPGRADE_IMG_GZ})
+      - (cd /dist && sha256sum $${SQUASHFS_SYSUPGRADE_IMG_GZ})
+
+volumes:
+  - name: dist
+    host:
+      path: /home/hentioe/openwrt/dist

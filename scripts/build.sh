@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # 此脚本用于本地构建测试。运行前建议执行 clean-full.sh 进行完整清理，因为当前的构建步骤脚本无法保证多次执行后的正确性。
+set -e
+
 export OPENWRT_BRANCH=main
 
 # 开始执行完整的构建步骤
