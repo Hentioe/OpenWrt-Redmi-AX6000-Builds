@@ -10,7 +10,12 @@ trigger:
     - push
 
 steps:
-  - name: build-slave
+  - name: clone-submodules
+    image: alpine/git
+    commands:
+      - git submodule update --init --recursive
+
+  - name: prepare-slave-env
     image: hentioe/openwrt-build-base:23.05-ubuntu
     pull: always
     commands:
@@ -23,10 +28,14 @@ steps:
       - bash ./openwrt-$${OPENWRT_BRANCH}/steps/01_clone_openwrt.sh
       - bash ./openwrt-$${OPENWRT_BRANCH}/steps/02-prepare_package.sh
       - bash ./openwrt-$${OPENWRT_BRANCH}/steps/03-apply_config.sh slave
-      # 构建固件
+
+  # 构建固件
+  - name: build-slave-firmware
+    image: hentioe/openwrt-build-base:23.05-ubuntu
+    commands:
       - (cd build/openwrt && make -j$(nproc) || { make -j1 V=s ; exit 1 ; })
 
-  - name: copy-firmware
+  - name: copy-to-dist
     image: hentioe/openwrt-build-base:23.05-ubuntu
     volumes:
       - name: dist
