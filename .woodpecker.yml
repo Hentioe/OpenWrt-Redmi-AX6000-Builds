@@ -1,0 +1,44 @@
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      recursive: true
+
+when:
+  - branch: main
+    event: push
+
+steps:
+  prepare-slave-env:
+    image: hentioe/openwrt-build-base:23.05-ubuntu
+    pull: true
+    commands:
+      # 修正仓库文件权限
+      - sudo chown -R 1000:1000 .
+      # 设置并输出环境信息
+      - export OPENWRT_BRANCH=main
+      - "echo Build user: `whoami`"
+      - "echo Build branch: $${OPENWRT_BRANCH}"
+      - bash ./openwrt-$${OPENWRT_BRANCH}/steps/01_clone_openwrt.sh
+      - bash ./openwrt-$${OPENWRT_BRANCH}/steps/02-prepare_package.sh
+      - bash ./openwrt-$${OPENWRT_BRANCH}/steps/03-apply_config.sh slave
+
+  build-slave-firmware:
+    image: hentioe/openwrt-build-base:23.05-ubuntu
+    commands:
+      - (cd build/openwrt && make -j$(nproc) || { make -j1 V=s ; exit 1 ; })
+
+  copy-to-dist:
+    image: hentioe/openwrt-build-base:23.05-ubuntu
+    volumes:
+      - ${APPS_HOME}/openwrt/dist:/dist
+    commands:
+      # 定义固件文件名变量
+      - export TARGET_ROOT=build/openwrt/bin/targets/mediatek/filogic
+      - export FACTORY_UBI=openwrt-mediatek-filogic-xiaomi_redmi-router-ax6000-stock-initramfs-factory.ubi
+      - export SQUASHFS_SYSUPGRADE_BIN=openwrt-mediatek-filogic-xiaomi_redmi-router-ax6000-stock-squashfs-sysupgrade.bin
+      # 将固件复制到外部
+      - cp $${TARGET_ROOT}/$${FACTORY_UBI} /dist/
+      - cp $${TARGET_ROOT}/$${SQUASHFS_SYSUPGRADE_BIN} /dist/
+      # 打印 sha256sums
+      - cat $${TARGET_ROOT}/sha256sums
