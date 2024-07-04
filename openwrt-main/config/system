@@ -11,8 +11,6 @@ config system
         option timezone 'CST-8'
 
 config timeserver 'ntp'
-        list server 'ntp.ntsc.ac.cn'
-        list server 'cn.ntp.org.cn'
         list server 'ntp1.aliyun.com'
         list server 'ntp2.aliyun.com'
         list server 'ntp.tencent.com'
