@@ -17,8 +17,9 @@ steps:
       - sudo chown -R 1000:1000 .
       # 设置并输出环境信息
       - export OPENWRT_BRANCH=main
-      - "echo Build user: `whoami`"
       - "echo Build branch: $${OPENWRT_BRANCH}"
+      - export HOME=/home/openwrt-builder
+      - "echo User home: $${HOME}"
       - bash ./openwrt-$${OPENWRT_BRANCH}/steps/01_clone_openwrt.sh
       - bash ./openwrt-$${OPENWRT_BRANCH}/steps/02-prepare_package.sh
       - bash ./openwrt-$${OPENWRT_BRANCH}/steps/03-apply_config.sh slave
@@ -26,6 +27,8 @@ steps:
   build-slave-firmware:
     image: hentioe/openwrt-build-base:23.05-ubuntu
     commands:
+      - export HOME=/home/openwrt-builder
+      - "echo User home: $${HOME}"
       - (cd build/openwrt && make -j$(nproc) || { make -j1 V=s ; exit 1 ; })
 
   copy-to-dist:
